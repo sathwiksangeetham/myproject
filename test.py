@@ -116,6 +116,16 @@ RESUME_FILES_DIR = DATA_DIR / "resume_files"
 CACHE_DIR = DATA_DIR / "cache"
 SETTINGS_FILE = DATA_DIR / "settings.json"
 
+# Difficulty-based constants for faster calculations
+DIFFICULTY_WEEKS = {
+    "Hard": 8,  # 2 months for hard skills
+}
+DEFAULT_WEEKS_PER_SKILL = 3
+DIFFICULTY_PROGRESS = {
+    "Hard": 0.3,
+}
+DEFAULT_PROGRESS = 0.6
+
 # AI Processing State Management
 class AIProcessingStage(Enum):
     INITIALIZING = "Initializing AI Model"
@@ -3840,12 +3850,10 @@ Success probability (0-100):"""
         if not skill_roadmap:
             return "No skills to develop"
         
-        total_weeks = 0
-        for skill in skill_roadmap:
-            if skill['difficulty'] == 'Hard':
-                total_weeks += 8  # 2 months
-            else:
-                total_weeks += 3  # 3 weeks
+        total_weeks = sum(
+            DIFFICULTY_WEEKS.get(skill.get('difficulty'), DEFAULT_WEEKS_PER_SKILL)
+            for skill in skill_roadmap
+        )
         
         if total_weeks <= 4:
             return f"{total_weeks} weeks"
@@ -5774,7 +5782,9 @@ def render_recommendations():
                                     st.caption("🆕 New skill area")
                                 
                                 # Progress indicator based on difficulty
-                                progress = 0.3 if skill['difficulty'] == 'Hard' else 0.6
+                                progress = DIFFICULTY_PROGRESS.get(
+                                    skill.get('difficulty'), DEFAULT_PROGRESS
+                                )
                                 st.progress(progress)
                             
                             with col2:
