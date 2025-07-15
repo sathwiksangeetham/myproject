@@ -3842,7 +3842,7 @@ Success probability (0-100):"""
         
         total_weeks = 0
         for skill in skill_roadmap:
-            if skill['difficulty'] == 'High':
+            if skill['difficulty'] == 'Hard':
                 total_weeks += 8  # 2 months
             else:
                 total_weeks += 3  # 3 weeks
@@ -5774,7 +5774,7 @@ def render_recommendations():
                                     st.caption("🆕 New skill area")
                                 
                                 # Progress indicator based on difficulty
-                                progress = 0.3 if skill['difficulty'] == 'High' else 0.6
+                                progress = 0.3 if skill['difficulty'] == 'Hard' else 0.6
                                 st.progress(progress)
                             
                             with col2:
