@@ -363,7 +363,9 @@ class SmartValidator:
         if len(skills) < min_skills:
             warnings.append(f"Consider adding more skills (minimum {min_skills} recommended)")
         if len(skills) > max_skills:
-            warnings.append(f"Too many skills listed - consider focusing on top {max_skills//2}-{max_skills}")
+            warnings.append(
+                f"Too many skills listed - consider focusing on top {max_skills//2}-{max_skills}"
+            )
         
         # Experience validation
         experience = resume_data.get('experience', [])
