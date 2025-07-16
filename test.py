@@ -1367,7 +1367,11 @@ def extract_text_from_file(file) -> str:
 
 # LLM Integration
 def check_ollama_connection():
-    """Check if SmolLM2 model is available"""
+    """Check if SmolLM2 model is available.
+
+    Returns:
+        Tuple[bool, List[str]]: Connection status and available models.
+    """
     try:
         # Suppress transformers warnings during import
         import logging
