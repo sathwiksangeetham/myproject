@@ -554,11 +554,18 @@ class AnalyticsEngine:
                 'weekly_averages': weekly_avg.to_dict()
             }
         
-        trend = "improving" if weekly_avg.iloc[-1] > weekly_avg.iloc[0] else "declining"
-        
+        diff = float(weekly_avg.iloc[-1] - weekly_avg.iloc[0])
+
+        if abs(diff) < 1e-6:
+            direction = 'stable'
+        elif diff > 0:
+            direction = 'improving'
+        else:
+            direction = 'declining'
+
         return {
-            'direction': trend,
-            'change': float(weekly_avg.iloc[-1] - weekly_avg.iloc[0]),
+            'direction': direction,
+            'change': diff,
             'weekly_averages': weekly_avg.to_dict()
         }
     
