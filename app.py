@@ -157,7 +157,7 @@ class StreamingProgress:
 class SmartCache:
     def __init__(self, cache_dir="data/cache"):
         self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(exist_ok=True)
+        self.cache_dir.mkdir(exist_ok=True, parents=True)
         self.memory_cache = {}
         self.cache_stats = {"hits": 0, "misses": 0}
     
