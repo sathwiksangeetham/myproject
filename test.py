@@ -146,6 +146,13 @@ class StreamingProgress:
     overall_confidence: float = 0.0
     processing_speed: float = 0.0  # tokens per second
 
+    def estimated_time_remaining(self) -> Optional[float]:
+        """Estimate remaining time based on processing speed and tokens."""
+        if self.processing_speed > 0:
+            remaining_tokens = max(self.total_estimated_tokens - self.current_tokens, 0)
+            return remaining_tokens / self.processing_speed
+        return None
+
 # Smart Cache Implementation
 class SmartCache:
     def __init__(self, cache_dir="data/cache"):
@@ -2599,10 +2606,11 @@ def llm_parse_streaming(text: str, parse_type: str, progress_callback=None, thou
             
             # Execute stage with streaming
             stage_result, stage_thoughts = stage_func(
-                text, parse_type, result, 
-                llm_parse_streaming.model, 
+                text, parse_type, result,
+                llm_parse_streaming.model,
                 llm_parse_streaming.tokenizer,
-                thought_callback
+                thought_callback,
+                progress
             )
             
             # Update progress
@@ -2631,7 +2639,7 @@ def llm_parse_streaming(text: str, parse_type: str, progress_callback=None, thou
             ))
         yield _get_fallback_result(parse_type), progress
 
-def _analyze_document_format(text, parse_type, current_result, model, tokenizer, thought_callback):
+def _analyze_document_format(text, parse_type, current_result, model, tokenizer, thought_callback, progress=None):
     """Stage 1: Analyze document format and structure"""
     thoughts = []
     
@@ -2674,6 +2682,8 @@ Analysis:"""
     for token in streamer:
         thought_text += token
         tokens_generated += 1
+        if progress is not None:
+            progress.current_tokens += 1
         
         if thought_callback and tokens_generated % 5 == 0:  # Update every 5 tokens
             thought_callback(AIThought(
@@ -2704,7 +2714,7 @@ Analysis:"""
     
     return format_info, thoughts
 
-def _extract_document_structure(text, parse_type, current_result, model, tokenizer, thought_callback):
+def _extract_document_structure(text, parse_type, current_result, model, tokenizer, thought_callback, progress=None):
     """Stage 2: Extract document structure and sections"""
     thoughts = []
     
@@ -2726,10 +2736,11 @@ Document:
         
         # Stream extraction for each section
         section_text = _stream_generate_with_callback(
-            model, tokenizer, prompt, 
-            thought_callback, 
+            model, tokenizer, prompt,
+            thought_callback,
             AIProcessingStage.EXTRACTING_STRUCTURE,
-            f"Extracting {section}"
+            f"Extracting {section}",
+            progress
         )
         
         structure[section] = section_text
@@ -2745,7 +2756,7 @@ Document:
     
     return structure, thoughts
 
-def _parse_content_fields(text, parse_type, current_result, model, tokenizer, thought_callback):
+def _parse_content_fields(text, parse_type, current_result, model, tokenizer, thought_callback, progress=None):
     """Stage 3: Parse specific content fields with advanced prompt engineering"""
     thoughts = []
     prompt_engineer = AdvancedPromptEngineer()
@@ -2782,7 +2793,8 @@ def _parse_content_fields(text, parse_type, current_result, model, tokenizer, th
                 model, tokenizer, cot_prompt,
                 thought_callback,
                 AIProcessingStage.PARSING_CONTENT,
-                f"Parsing {field} with Chain-of-Thought"
+                f"Parsing {field} with Chain-of-Thought",
+                progress
             )
             
             result[field] = value.strip()
@@ -2809,7 +2821,8 @@ def _parse_content_fields(text, parse_type, current_result, model, tokenizer, th
                 model, tokenizer, prompt,
                 thought_callback,
                 AIProcessingStage.PARSING_CONTENT,
-                f"Extracting skills (variation {i+1})"
+                f"Extracting skills (variation {i+1})",
+                progress
             )
             skill_responses.append(response)
         
@@ -2869,7 +2882,8 @@ def _parse_content_fields(text, parse_type, current_result, model, tokenizer, th
                 model, tokenizer, prompt,
                 thought_callback,
                 AIProcessingStage.PARSING_CONTENT,
-                f"Extracting skills (approach {i+1})"
+                f"Extracting skills (approach {i+1})",
+                progress
             )
             skill_responses.append(response)
         
@@ -2894,7 +2908,7 @@ def _parse_content_fields(text, parse_type, current_result, model, tokenizer, th
     
     return result, thoughts
 
-def _validate_extracted_data(text, parse_type, current_result, model, tokenizer, thought_callback):
+def _validate_extracted_data(text, parse_type, current_result, model, tokenizer, thought_callback, progress=None):
     """Stage 4: Validate extracted data"""
     thoughts = []
     
@@ -2913,7 +2927,8 @@ Validation analysis:"""
         model, tokenizer, validation_prompt,
         thought_callback,
         AIProcessingStage.VALIDATING_DATA,
-        "Validating extracted data"
+        "Validating extracted data",
+        progress
     )
     
     thoughts.append(AIThought(
@@ -2942,7 +2957,8 @@ Missing fields with values:"""
             model, tokenizer, missing_prompt,
             thought_callback,
             AIProcessingStage.VALIDATING_DATA,
-            "Filling missing fields"
+            "Filling missing fields",
+            progress
         )
         
         # Parse corrections (simplified)
@@ -2955,7 +2971,7 @@ Missing fields with values:"""
     
     return corrections, thoughts
 
-def _refine_results(text, parse_type, current_result, model, tokenizer, thought_callback):
+def _refine_results(text, parse_type, current_result, model, tokenizer, thought_callback, progress=None):
     """Stage 5: Refine and enhance results"""
     thoughts = []
     refinements = {}
@@ -2973,7 +2989,8 @@ Enhanced skill analysis:"""
             model, tokenizer, skills_enhancement_prompt,
             thought_callback,
             AIProcessingStage.REFINING_RESULTS,
-            "Enhancing skills analysis"
+            "Enhancing skills analysis",
+            progress
         )
         
         thoughts.append(AIThought(
@@ -2997,14 +3014,15 @@ Brief explanation and score:"""
         model, tokenizer, quality_prompt,
         thought_callback,
         AIProcessingStage.REFINING_RESULTS,
-        "Assessing document quality"
+        "Assessing document quality",
+        progress
     )
     
     refinements['quality_score'] = quality_assessment
     
     return refinements, thoughts
 
-def _finalize_parsing(text, parse_type, current_result, model, tokenizer, thought_callback):
+def _finalize_parsing(text, parse_type, current_result, model, tokenizer, thought_callback, progress=None):
     """Stage 6: Finalize parsing results"""
     thoughts = []
     
@@ -3018,7 +3036,8 @@ Summary:"""
         model, tokenizer, summary_prompt,
         thought_callback,
         AIProcessingStage.FINALIZING,
-        "Generating final summary"
+        "Generating final summary",
+        progress
     )
     
     thoughts.append(AIThought(
@@ -3037,7 +3056,7 @@ Summary:"""
     
     return final_additions, thoughts
 
-def _stream_generate_with_callback(model, tokenizer, prompt, thought_callback, stage, field_name):
+def _stream_generate_with_callback(model, tokenizer, prompt, thought_callback, stage, field_name, progress=None):
     """Helper function for streaming generation with callbacks"""
     from transformers import TextIteratorStreamer
     
@@ -3066,6 +3085,8 @@ def _stream_generate_with_callback(model, tokenizer, prompt, thought_callback, s
     for token in streamer:
         generated_text += token
         tokens += 1
+        if progress is not None:
+            progress.current_tokens += 1
         
         if thought_callback and tokens % 3 == 0:
             thought_callback(AIThought(
