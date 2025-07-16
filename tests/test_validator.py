@@ -2,14 +2,12 @@ import sys
 from types import ModuleType
 from unittest.mock import MagicMock
 
-# Mock external dependencies required when importing test.py
+# Mock external dependencies required when importing app.py
 missing_modules = [
     'streamlit',
     'PyPDF2',
     'docx',
     'ollama',
-    'pandas',
-    'numpy',
     'plotly',
     'plotly.graph_objects',
     'plotly.express',
@@ -30,7 +28,6 @@ sys.modules['plotly'].express = MagicMock()
 sys.modules['transformers'].AutoTokenizer = MagicMock()
 sys.modules['transformers'].AutoModelForCausalLM = MagicMock()
 sys.modules['docx'].Document = MagicMock()
-sys.modules['pandas'].DataFrame = MagicMock()
 # Provide torch.classes.__path__ for compatibility
 class _Classes:
     __path__ = []
@@ -43,7 +40,7 @@ from pathlib import Path
 
 spec = importlib.util.spec_from_file_location(
     "app_module",
-    Path(__file__).resolve().parents[1] / "test.py",
+    Path(__file__).resolve().parents[1] / "app.py",
 )
 test = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(test)

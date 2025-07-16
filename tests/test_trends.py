@@ -1,7 +1,7 @@
 import types
 import sys
 
-# Stub out heavy modules before importing test.py
+# Stub out heavy modules before importing app.py
 st = types.ModuleType('streamlit')
 st.session_state = types.SimpleNamespace(settings={})
 sys.modules['streamlit'] = st
@@ -22,7 +22,7 @@ import importlib.util
 from pathlib import Path
 
 spec = importlib.util.spec_from_file_location(
-    "project_test", Path(__file__).resolve().parents[1] / "test.py"
+    "project_test", Path(__file__).resolve().parents[1] / "app.py"
 )
 module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
